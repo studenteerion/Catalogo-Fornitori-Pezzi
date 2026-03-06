@@ -21,7 +21,8 @@ final class AuthMiddleware implements MiddlewareInterface
 
     public function process(Request $request, RequestHandlerInterface $handler): Response
     {
-        $token = $this->extractBearerToken($request);
+        // Prova prima dal cookie, poi dal Bearer token
+        $token = $this->extractToken($request);
 
         if ($token === null) {
             return $this->jsonResponse([
@@ -37,6 +38,18 @@ final class AuthMiddleware implements MiddlewareInterface
         }
 
         return $handler->handle($request->withAttribute('authAccount', $account));
+    }
+
+    private function extractToken(Request $request): ?string
+    {
+        // 1. Prova a estrarre dal cookie HttpOnly
+        $cookies = $request->getCookieParams();
+        if (isset($cookies['auth_token']) && $cookies['auth_token'] !== '') {
+            return urldecode((string) $cookies['auth_token']);
+        }
+
+        // 2. Fallback: estrai dal Bearer token (per compatibilità)
+        return $this->extractBearerToken($request);
     }
 
     private function extractBearerToken(Request $request): ?string

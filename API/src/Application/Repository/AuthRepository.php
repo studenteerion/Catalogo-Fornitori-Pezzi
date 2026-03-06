@@ -114,9 +114,10 @@ final class AuthRepository
     public function getAccountById(int $aid): ?array
     {
         $statement = $this->pdo->prepare(
-            'SELECT aid, email, ruolo, fid
-             FROM Account
-             WHERE aid = :aid
+            'SELECT a.aid, a.email, a.ruolo, a.fid, f.fnome, f.indirizzo
+             FROM Account a
+             LEFT JOIN Fornitori f ON f.fid = a.fid
+             WHERE a.aid = :aid
              LIMIT 1'
         );
         $statement->execute(['aid' => $aid]);
@@ -129,29 +130,112 @@ final class AuthRepository
     /** @param array<string,mixed> $fields */
     public function updateAccount(int $aid, array $fields): array
     {
-        if (!array_key_exists('email', $fields)) {
+        $hasEmail = array_key_exists('email', $fields);
+        $hasFnome = array_key_exists('fnome', $fields);
+        $hasIndirizzo = array_key_exists('indirizzo', $fields);
+        $hasOldPassword = array_key_exists('oldPassword', $fields);
+        $hasNewPassword = array_key_exists('newPassword', $fields);
+
+        if (!$hasEmail && !$hasFnome && !$hasIndirizzo && !$hasOldPassword && !$hasNewPassword) {
             throw new DomainException('Nessun campo valido da aggiornare.');
         }
 
-        $email = trim((string) $fields['email']);
-        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw new DomainException('Email non valida.');
+        // Aggiorna password se fornita
+        if ($hasOldPassword || $hasNewPassword) {
+            if (!$hasOldPassword || !$hasNewPassword) {
+                throw new DomainException('Entrambi i campi oldPassword e newPassword sono obbligatori.');
+            }
+
+            $oldPassword = (string) $fields['oldPassword'];
+            $newPassword = (string) $fields['newPassword'];
+
+            $statement = $this->pdo->prepare(
+                'SELECT password_hash FROM Account WHERE aid = :aid LIMIT 1'
+            );
+            $statement->execute(['aid' => $aid]);
+            $row = $statement->fetch();
+
+            if ($row === false) {
+                throw new DomainException('Account non trovato.');
+            }
+
+            if (!password_verify($oldPassword, (string) $row['password_hash'])) {
+                throw new DomainException('Password attuale non corretta.');
+            }
+
+            $statement = $this->pdo->prepare(
+                'UPDATE Account SET password_hash = :password_hash WHERE aid = :aid'
+            );
+            $statement->execute([
+                'password_hash' => password_hash($newPassword, PASSWORD_DEFAULT),
+                'aid' => $aid,
+            ]);
         }
 
-        $existing = $this->findAccountByEmail($email);
-        if ($existing !== null && (int) $existing['aid'] !== $aid) {
-            throw new DomainException('Email già registrata.');
+        // Aggiorna email se fornita
+        if ($hasEmail) {
+            $email = trim((string) $fields['email']);
+            if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                throw new DomainException('Email non valida.');
+            }
+
+            $existing = $this->findAccountByEmail($email);
+            if ($existing !== null && (int) $existing['aid'] !== $aid) {
+                throw new DomainException('Email già registrata.');
+            }
+
+            $statement = $this->pdo->prepare(
+                'UPDATE Account SET email = :email WHERE aid = :aid'
+            );
+            $statement->execute([
+                'email' => $email,
+                'aid' => $aid,
+            ]);
         }
 
-        $statement = $this->pdo->prepare(
-            'UPDATE Account
-             SET email = :email
-             WHERE aid = :aid'
-        );
-        $statement->execute([
-            'email' => $email,
-            'aid' => $aid,
-        ]);
+        // Aggiorna dati fornitore se forniti
+        if ($hasFnome || $hasIndirizzo) {
+            // Ottieni il fid dall'account
+            $statement = $this->pdo->prepare(
+                'SELECT fid FROM Account WHERE aid = :aid LIMIT 1'
+            );
+            $statement->execute(['aid' => $aid]);
+            $row = $statement->fetch();
+
+            if ($row === false || $row['fid'] === null) {
+                throw new DomainException('Nessun fornitore associato a questo account.');
+            }
+
+            $fid = (int) $row['fid'];
+
+            // Prepara i campi da aggiornare
+            $updateFields = [];
+            $params = ['fid' => $fid];
+
+            if ($hasFnome) {
+                $fnome = trim((string) $fields['fnome']);
+                if ($fnome === '') {
+                    throw new DomainException('Nome fornitore non può essere vuoto.');
+                }
+                $updateFields[] = 'fnome = :fnome';
+                $params['fnome'] = $fnome;
+            }
+
+            if ($hasIndirizzo) {
+                $indirizzo = trim((string) $fields['indirizzo']);
+                if ($indirizzo === '') {
+                    throw new DomainException('Indirizzo non può essere vuoto.');
+                }
+                $updateFields[] = 'indirizzo = :indirizzo';
+                $params['indirizzo'] = $indirizzo;
+            }
+
+            if (!empty($updateFields)) {
+                $sql = 'UPDATE Fornitori SET ' . implode(', ', $updateFields) . ' WHERE fid = :fid';
+                $statement = $this->pdo->prepare($sql);
+                $statement->execute($params);
+            }
+        }
 
         $account = $this->getAccountById($aid);
         if ($account === null) {
@@ -324,6 +408,8 @@ final class AuthRepository
             'email' => (string) $row['email'],
             'ruolo' => (string) $row['ruolo'],
             'fid' => $row['fid'] === null ? null : (int) $row['fid'],
+            'fnome' => $row['fnome'] === null ? null : (string) $row['fnome'],
+            'indirizzo' => $row['indirizzo'] === null ? null : (string) $row['indirizzo'],
         ];
     }
 }

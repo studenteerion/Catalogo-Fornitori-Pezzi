@@ -45,11 +45,22 @@ final class AuthController
                 'indirizzo' => $indirizzo,
             ]);
 
+            // Imposta il cookie HttpOnly se il token è disponibile
+            if (isset($result['accessToken'])) {
+                $response = $response->withHeader(
+                    'Set-Cookie',
+                    'auth_token=' . urlencode($result['accessToken']) . '; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=86400'
+                );
+                // Rimuovi il token dal payload JSON
+                unset($result['accessToken']);
+            }
+
             return $this->json($response, $result, 201);
         } catch (DomainException $exception) {
+            $status = $exception->getMessage() === 'Email già registrata.' ? 409 : 422;
             return $this->json($response, [
                 'error' => $exception->getMessage(),
-            ], 409);
+            ], $status);
         } catch (Throwable $exception) {
             return $this->json($response, [
                 'error' => 'Errore durante la registrazione.',
@@ -78,12 +89,22 @@ final class AuthController
             ], 401);
         }
 
+        // Imposta il cookie HttpOnly se il token è disponibile
+        if (isset($result['accessToken'])) {
+            $response = $response->withHeader(
+                'Set-Cookie',
+                'auth_token=' . urlencode($result['accessToken']) . '; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=86400'
+            );
+            // Rimuovi il token dal payload JSON
+            unset($result['accessToken']);
+        }
+
         return $this->json($response, $result);
     }
 
     public function refresh(Request $request, Response $response): Response
     {
-        $token = $this->extractBearerToken($request);
+        $token = $this->extractToken($request);
 
         if ($token === null) {
             return $this->json($response, [
@@ -103,7 +124,7 @@ final class AuthController
 
     public function logout(Request $request, Response $response): Response
     {
-        $token = $this->extractBearerToken($request);
+        $token = $this->extractToken($request);
 
         if ($token === null) {
             return $this->json($response, [
@@ -112,6 +133,12 @@ final class AuthController
         }
 
         $this->repository->logout($token);
+
+        // Cancella il cookie HttpOnly
+        $response = $response->withHeader(
+            'Set-Cookie',
+            'auth_token=; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=0'
+        );
 
         return $this->json($response, [
             'message' => 'Logout effettuato.',
@@ -129,6 +156,18 @@ final class AuthController
         $data = json_decode($rawBody, true);
 
         return is_array($data) ? $data : [];
+    }
+
+    private function extractToken(Request $request): ?string
+    {
+        // 1. Prova a estrarre dal cookie HttpOnly
+        $cookies = $request->getCookieParams();
+        if (isset($cookies['auth_token']) && $cookies['auth_token'] !== '') {
+            return urldecode((string) $cookies['auth_token']);
+        }
+
+        // 2. Fallback: estrai dal Bearer token (per compatibilità)
+        return $this->extractBearerToken($request);
     }
 
     private function extractBearerToken(Request $request): ?string

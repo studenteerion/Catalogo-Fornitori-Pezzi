@@ -57,6 +57,7 @@ final class ExerciseController
             return $this->json($response, [
                 'results' => $result['rows'],
                 'pagination' => $result['pagination'],
+                'description' => $result['description'] ?? null,
             ]);
         } catch (InvalidArgumentException $exception) {
             return $this->json($response, [
@@ -65,6 +66,54 @@ final class ExerciseController
         } catch (Throwable $exception) {
             return $this->json($response, [
                 'error' => 'Errore durante l\'esecuzione query',
+                'details' => $exception->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function getSupplier(Request $request, Response $response, array $args): Response
+    {
+        $fid = (int) ($args['fid'] ?? 0);
+
+        try {
+            $supplier = $this->repository->getSupplierDetailsById($fid);
+
+            if ($supplier === null) {
+                return $this->json($response, [
+                    'error' => 'Fornitore non trovato.',
+                ], 404);
+            }
+
+            return $this->json($response, [
+                'fornitore' => $supplier,
+            ]);
+        } catch (Throwable $exception) {
+            return $this->json($response, [
+                'error' => 'Errore nel recupero del fornitore.',
+                'details' => $exception->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function getPart(Request $request, Response $response, array $args): Response
+    {
+        $pid = (int) ($args['pid'] ?? 0);
+
+        try {
+            $part = $this->repository->getPartDetailsById($pid);
+
+            if ($part === null) {
+                return $this->json($response, [
+                    'error' => 'Pezzo non trovato.',
+                ], 404);
+            }
+
+            return $this->json($response, [
+                'pezzo' => $part,
+            ]);
+        } catch (Throwable $exception) {
+            return $this->json($response, [
+                'error' => 'Errore nel recupero del pezzo.',
                 'details' => $exception->getMessage(),
             ], 500);
         }

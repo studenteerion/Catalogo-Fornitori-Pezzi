@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/css/global.css" rel="stylesheet">
+    <link href="/css/admin_dashboard.css" rel="stylesheet">
+</head>
+<body>
+    <div id="toast-container" class="toast-container-custom" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/"><i class="bi bi-box-seam"></i> Catalogo Fornitori</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <div id="nav-buttons" class="d-flex gap-2">
+                    <!-- Pulsanti inseriti da JS -->
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container py-5">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <h1>Dashboard Amministratore</h1>
+            <p>Gestione completa del sistema</p>
+        </div>
+
+        <!-- Statistics -->
+        <div class="row mb-4" id="stats-section">
+            <div class="col">
+                <div class="stats-card">
+                    <div class="icon text-primary"><i class="bi bi-building"></i></div>
+                    <div class="number" id="stat-fornitori">0</div>
+                    <div class="label">Fornitori</div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="stats-card">
+                    <div class="icon text-success"><i class="bi bi-box"></i></div>
+                    <div class="number" id="stat-pezzi">0</div>
+                    <div class="label">Pezzi</div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="stats-card">
+                    <div class="icon text-info"><i class="bi bi-grid"></i></div>
+                    <div class="number" id="stat-catalogo">0</div>
+                    <div class="label">Voci Catalogo</div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="stats-card">
+                    <div class="icon text-warning"><i class="bi bi-people"></i></div>
+                    <div class="number" id="stat-account">0</div>
+                    <div class="label">Account Fornitori</div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="stats-card">
+                    <div class="icon text-danger"><i class="bi bi-shield-check"></i></div>
+                    <div class="number" id="stat-admin">0</div>
+                    <div class="label">Admin</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <ul class="nav nav-pills mb-4" id="admin-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="fornitori-tab" data-bs-toggle="pill" data-bs-target="#fornitori" type="button">
+                    <i class="bi bi-building"></i> Fornitori
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="pezzi-tab" data-bs-toggle="pill" data-bs-target="#pezzi" type="button">
+                    <i class="bi bi-box"></i> Pezzi
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="catalogo-tab" data-bs-toggle="pill" data-bs-target="#catalogo" type="button">
+                    <i class="bi bi-grid"></i> Catalogo
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="account-tab" data-bs-toggle="pill" data-bs-target="#account" type="button">
+                    <i class="bi bi-people"></i> Account Fornitori
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="admins-tab" data-bs-toggle="pill" data-bs-target="#admins" type="button">
+                    <i class="bi bi-shield-lock"></i> Admin
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="profilo-tab" data-bs-toggle="pill" data-bs-target="#profilo" type="button">
+                    <i class="bi bi-person-circle"></i> Il Mio Profilo
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="admin-tabs-content">
+            <!-- Fornitori Tab -->
+            <div class="tab-pane fade show active" id="fornitori" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Gestione Fornitori</h5>
+                        <button class="btn btn-light btn-sm" onclick="showAddFornitoreModal()">
+                            <i class="bi bi-plus-lg"></i> Aggiungi Fornitore
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
+                            <input type="text" class="form-control" id="fornitori-search" placeholder="Cerca fornitore..." style="max-width: 320px;">
+                            <select class="form-select" id="fornitori-page-size" style="width: auto; min-width: 110px;">
+                                <option value="10">10 / pagina</option>
+                                <option value="25">25 / pagina</option>
+                                <option value="50">50 / pagina</option>
+                                <option value="all">Tutti</option>
+                            </select>
+                        </div>
+                        <table class="table table-hover" id="fornitori-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nome</th>
+                                    <th>Indirizzo</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody id="fornitori-tbody">
+                                <tr><td colspan="4" class="text-center">Caricamento...</td></tr>
+                            </tbody>
+                        </table>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <small class="text-muted" id="fornitori-info"></small>
+                            <ul class="pagination pagination-sm mb-0" id="fornitori-pagination"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pezzi Tab -->
+            <div class="tab-pane fade" id="pezzi" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Gestione Pezzi</h5>
+                        <button class="btn btn-light btn-sm" onclick="showAddPezzoModal()">
+                            <i class="bi bi-plus-lg"></i> Aggiungi Pezzo
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
+                            <input type="text" class="form-control" id="pezzi-search" placeholder="Cerca pezzo..." style="max-width: 320px;">
+                            <select class="form-select" id="pezzi-page-size" style="width: auto; min-width: 110px;">
+                                <option value="10">10 / pagina</option>
+                                <option value="25">25 / pagina</option>
+                                <option value="50">50 / pagina</option>
+                                <option value="all">Tutti</option>
+                            </select>
+                        </div>
+                        <table class="table table-hover" id="pezzi-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nome</th>
+                                    <th>Colore</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pezzi-tbody">
+                                <tr><td colspan="4" class="text-center">Caricamento...</td></tr>
+                            </tbody>
+                        </table>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <small class="text-muted" id="pezzi-info"></small>
+                            <ul class="pagination pagination-sm mb-0" id="pezzi-pagination"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Catalogo Tab -->
+            <div class="tab-pane fade" id="catalogo" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Gestione Catalogo</h5>
+                        <button class="btn btn-light btn-sm" onclick="showAddCatalogoModal()">
+                            <i class="bi bi-plus-lg"></i> Aggiungi al Catalogo
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
+                            <input type="text" class="form-control" id="catalogo-search" placeholder="Cerca nel catalogo..." style="max-width: 320px;">
+                            <select class="form-select" id="catalogo-page-size" style="width: auto; min-width: 110px;">
+                                <option value="10">10 / pagina</option>
+                                <option value="25">25 / pagina</option>
+                                <option value="50">50 / pagina</option>
+                                <option value="all">Tutti</option>
+                            </select>
+                        </div>
+                        <table class="table table-hover" id="catalogo-table">
+                            <thead>
+                                <tr>
+                                    <th>Fornitore</th>
+                                    <th>Pezzo</th>
+                                    <th>Costo</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody id="catalogo-tbody">
+                                <tr><td colspan="4" class="text-center">Caricamento...</td></tr>
+                            </tbody>
+                        </table>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <small class="text-muted" id="catalogo-info"></small>
+                            <ul class="pagination pagination-sm mb-0" id="catalogo-pagination"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account Fornitori Tab -->
+            <div class="tab-pane fade" id="account" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Gestione Account Fornitori</h5>
+                        <button class="btn btn-light btn-sm" onclick="showAddAccountModal()">
+                            <i class="bi bi-plus-lg"></i> Aggiungi Account Fornitore
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
+                            <input type="text" class="form-control" id="account-search" placeholder="Cerca account fornitore..." style="max-width: 320px;">
+                            <select class="form-select" id="account-page-size" style="width: auto; min-width: 110px;">
+                                <option value="10">10 / pagina</option>
+                                <option value="25">25 / pagina</option>
+                                <option value="50">50 / pagina</option>
+                                <option value="all">Tutti</option>
+                            </select>
+                        </div>
+                        <table class="table table-hover" id="account-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Email</th>
+                                    <th>Fornitore</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody id="account-tbody">
+                                <tr><td colspan="4" class="text-center">Caricamento...</td></tr>
+                            </tbody>
+                        </table>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <small class="text-muted" id="account-info"></small>
+                            <ul class="pagination pagination-sm mb-0" id="account-pagination"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Tab -->
+            <div class="tab-pane fade" id="admins" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Elenco Admin</h5>
+                        <button class="btn btn-light btn-sm" onclick="openAdminModal()">
+                            <i class="bi bi-plus-lg"></i> Nuovo Admin
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
+                            <input type="text" class="form-control" id="admins-search" placeholder="Cerca admin..." style="max-width: 320px;">
+                            <select class="form-select" id="admins-page-size" style="width: auto; min-width: 110px;">
+                                <option value="10">10 / pagina</option>
+                                <option value="25">25 / pagina</option>
+                                <option value="50">50 / pagina</option>
+                                <option value="all">Tutti</option>
+                            </select>
+                        </div>
+                        <table class="table table-hover" id="admins-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Email</th>
+                                    <th>Ruolo</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admins-tbody">
+                                <tr><td colspan="3" class="text-center">Caricamento...</td></tr>
+                            </tbody>
+                        </table>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <small class="text-muted" id="admins-info"></small>
+                            <ul class="pagination pagination-sm mb-0" id="admins-pagination"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profilo Tab -->
+            <div class="tab-pane fade" id="profilo" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Il Mio Profilo</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="profilo-form" autocomplete="off">
+                            <div class="mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" id="profilo-email" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Password Attuale <small class="text-muted">(Opzionale)</small></label>
+                                <input type="password" class="form-control" id="profilo-old-password" autocomplete="new-password">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Nuova Password <small class="text-muted">(Opzionale)</small></label>
+                                <input type="password" class="form-control" id="profilo-new-password" autocomplete="new-password">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Conferma Password <small class="text-muted">(Opzionale)</small></label>
+                                <input type="password" class="form-control" id="profilo-confirm-password" autocomplete="new-password">
+                            </div>
+                            <button type="submit" class="btn btn-primary-admin">
+                                <i class="bi bi-save"></i> Salva Modifiche
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Add/Edit Fornitore -->
+    <div class="modal fade" id="fornitoreModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="fornitoreModalTitle">Aggiungi Fornitore</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="fornitore-form">
+                        <input type="hidden" id="fornitore-fid">
+                        <div class="mb-3">
+                            <label class="form-label">Nome Fornitore</label>
+                            <input type="text" class="form-control" id="fornitore-nome" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Indirizzo</label>
+                            <textarea class="form-control" id="fornitore-indirizzo" rows="3" required></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="button" class="btn btn-primary-admin" onclick="saveFornitore()">Salva</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Add/Edit Pezzo -->
+    <div class="modal fade" id="pezzoModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="pezzoModalTitle">Aggiungi Pezzo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="pezzo-form">
+                        <input type="hidden" id="pezzo-pid">
+                        <div class="mb-3">
+                            <label class="form-label">Nome Pezzo</label>
+                            <input type="text" class="form-control" id="pezzo-nome" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Colore</label>
+                            <input type="text" class="form-control" id="pezzo-colore" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="button" class="btn btn-primary-admin" onclick="savePezzo()">Salva</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Add/Edit Catalogo -->
+    <div class="modal fade" id="catalogoModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="catalogoModalTitle">Aggiungi al Catalogo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="catalogo-form">
+                        <input type="hidden" id="catalogo-fid-original">
+                        <input type="hidden" id="catalogo-pid-original">
+                        <div class="mb-3">
+                            <label class="form-label">Fornitore</label>
+                            <select class="form-select" id="catalogo-fid" required>
+                                <option value="">Seleziona fornitore...</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Pezzo</label>
+                            <select class="form-select" id="catalogo-pid" required>
+                                <option value="">Seleziona pezzo...</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Costo</label>
+                            <input type="number" step="0.01" class="form-control" id="catalogo-costo" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="button" class="btn btn-primary-admin" onclick="saveCatalogo()">Salva</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Add/Edit Account Fornitore -->
+    <div class="modal fade" id="accountModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="accountModalTitle">Aggiungi Account Fornitore</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="account-form-modal" autocomplete="off">
+                        <input type="hidden" id="account-aid">
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" id="account-email-modal" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password <small class="text-muted" id="account-password-hint">(Obbligatoria in creazione)</small></label>
+                            <input type="password" class="form-control" id="account-password-modal" autocomplete="new-password">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Azienda (Fornitore)</label>
+                            <select class="form-select" id="account-fid-modal" required>
+                                <option value="">Seleziona azienda...</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="button" class="btn btn-primary-admin" onclick="saveAccount()">Salva</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Add Admin -->
+    <div class="modal fade" id="adminModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Aggiungi Nuovo Admin</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="admin-form-modal" autocomplete="off">
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" id="admin-email-modal" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="password" class="form-control" id="admin-password-modal" autocomplete="new-password" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="button" class="btn btn-primary-admin" onclick="saveAdmin()">Salva</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Dettagli Catalogo -->
+    <div class="modal fade" id="detailsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="detailsModalTitle">Dettagli</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="detailsModalBody"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/config.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/admin_dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,114 @@
+/* Sortable Table Headers */
+table thead th.sortable {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    white-space: nowrap;
+    padding-right: 24px !important;
+    transition: background-color 0.2s ease;
+}
+
+table thead th.sortable:hover {
+    background-color: rgba(220, 38, 38, 0.12);
+}
+
+table thead th:not(.sortable) {
+    cursor: default;
+}
+
+table thead th.sortable::after {
+    content: '⇅';
+    position: absolute;
+    right: 8px;
+    color: #d1d5db;
+    font-size: 0.7em;
+    font-weight: bold;
+}
+
+table thead th.sort-asc::after {
+    content: '↑';
+    color: #dc2626;
+    font-size: 1em;
+}
+
+table thead th.sort-desc::after {
+    content: '↓';
+    color: #dc2626;
+    font-size: 1em;
+}
+
+.dashboard-header {
+    background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+    color: white;
+    padding: 40px 30px;
+    margin-bottom: 40px;
+    border-radius: 10px;
+}
+
+.dashboard-header h1 {
+    font-size: 32px;
+    font-weight: 700;
+    margin: 0 0 10px 0;
+}
+
+.dashboard-header p {
+    margin: 0;
+    opacity: 0.95;
+}
+
+.card-header {
+    background-color: #dc2626;
+    color: white;
+    border-radius: 8px 8px 0 0;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-header h5 {
+    margin: 0;
+    font-weight: 600;
+}
+
+.nav-pills .nav-link {
+    color: #dc2626;
+    border-radius: 8px;
+    padding: 12px 20px;
+    margin-right: 10px;
+}
+
+.nav-pills .nav-link.active {
+    background-color: #dc2626;
+    color: white;
+}
+
+.btn-primary-admin {
+    background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+    border: none;
+    color: white;
+    font-weight: 600;
+    padding: 10px 20px;
+    border-radius: 6px;
+}
+
+.btn-primary-admin:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(220, 38, 38, 0.3);
+    color: white;
+}
+
+.catalog-link {
+    border: none;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    color: #0d6efd;
+    text-decoration: underline;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.catalog-link:hover {
+    color: #0a58ca;
+}

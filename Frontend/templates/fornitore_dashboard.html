@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Fornitore</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/css/global.css" rel="stylesheet">
+    <link href="/css/fornitore_dashboard.css" rel="stylesheet">
+</head>
+<body>
+    <div id="toast-container" class="toast-container-custom" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/"><i class="bi bi-box-seam"></i> Catalogo Fornitori</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <div id="nav-buttons" class="d-flex gap-2">
+                    <!-- Pulsanti inseriti da JS -->
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container py-5">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <h1>Dashboard Fornitore</h1>
+            <p>Gestisci le tue informazioni e il tuo catalogo</p>
+        </div>
+
+        <!-- Statistics -->
+        <div class="row mb-4" id="stats-section">
+            <div class="col-md-12">
+                <div class="stats-card">
+                    <div class="icon text-primary"><i class="bi bi-box-seam"></i></div>
+                    <div class="number" id="stat-catalog-items">0</div>
+                    <div class="label">Pezzi in Catalogo</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs Navigation -->
+        <ul class="nav nav-pills mb-4" id="dashboardTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="catalog-tab" data-bs-toggle="pill" data-bs-target="#catalog" type="button" role="tab">
+                    <i class="bi bi-box-seam"></i> Il Mio Catalogo
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="profile-tab" data-bs-toggle="pill" data-bs-target="#profile" type="button" role="tab">
+                    <i class="bi bi-person-circle"></i> Il Mio Profilo
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="dashboardTabContent">
+            <!-- Dati Personali Tab -->
+            <div class="tab-pane fade" id="profile" role="tabpanel">
+                <!-- Dati Account -->
+        <div class="card">
+            <div class="card-header">
+                <h5>Informazioni Account e Fornitore</h5>
+                <button class="btn btn-light btn-sm" id="edit-account-btn" title="Modifica">
+                    <i class="bi bi-pencil-square"></i> Modifica
+                </button>
+            </div>
+            <div class="card-body">
+                <form id="account-form" autocomplete="off">
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input 
+                            type="email" 
+                            id="account-email" 
+                            class="form-control" 
+                            disabled
+                            readonly
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Nome Fornitore</label>
+                        <input 
+                            type="text" 
+                            id="supplier-nome" 
+                            class="form-control" 
+                            disabled
+                            placeholder="Nome azienda"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Indirizzo</label>
+                        <textarea 
+                            id="supplier-indirizzo" 
+                            class="form-control" 
+                            rows="3"
+                            disabled
+                            placeholder="Indirizzo completo"
+                        ></textarea>
+                    </div>
+
+                    <div class="alert alert-info" style="display: none;" id="password-hint">
+                        <i class="bi bi-info-circle"></i> Compila i campi password solo se desideri modificare la tua password attuale.
+                    </div>
+
+                    <div class="form-group hidden" id="old-password-group">
+                        <label class="form-label">
+                            Password Attuale
+                            <span class="optional-label">(Opzionale)</span>
+                        </label>
+                        <input 
+                            type="password" 
+                            id="account-old-password" 
+                            class="form-control" 
+                            placeholder="Inserisci la tua password attuale"
+                            autocomplete="new-password"
+                            disabled
+                        >
+                    </div>
+
+                    <div class="form-group hidden" id="new-password-group">
+                        <label class="form-label">
+                            Nuova Password
+                            <span class="optional-label">(Opzionale)</span>
+                        </label>
+                        <input 
+                            type="password" 
+                            id="account-new-password" 
+                            class="form-control" 
+                            placeholder="Inserisci la nuova password"
+                            autocomplete="new-password"
+                            disabled
+                        >
+                    </div>
+
+                    <div class="form-group hidden" id="confirm-password-group">
+                        <label class="form-label">
+                            Conferma Password
+                            <span class="optional-label">(Opzionale)</span>
+                        </label>
+                        <input 
+                            type="password" 
+                            id="account-confirm-password" 
+                            class="form-control" 
+                            placeholder="Conferma la nuova password"
+                            autocomplete="new-password"
+                            disabled
+                        >
+                    </div>
+
+                    <div id="account-buttons" class="button-group hidden">
+                        <button type="button" class="btn btn-secondary" id="cancel-account-btn">
+                            Annulla
+                        </button>
+                        <button type="submit" class="btn btn-primary-supplier" id="save-account-btn">
+                            Salva Modifiche
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+            </div>
+            <!-- Fine Dati Personali Tab -->
+
+            <!-- Il Mio Catalogo Tab -->
+            <div class="tab-pane fade show active" id="catalog" role="tabpanel">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="m-0">Il Mio Catalogo</h5>
+                        <button class="btn btn-light btn-sm" onclick="openAddToCatalogModal()">
+                            <i class="bi bi-plus-lg"></i> Aggiungi Pezzo
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
+                            <input type="text" class="form-control" id="catalog-search" placeholder="Cerca nel catalogo..." style="max-width: 320px;">
+                            <select class="form-select" id="catalog-page-size" style="width: auto; min-width: 110px;">
+                                <option value="10">10 / pagina</option>
+                                <option value="25">25 / pagina</option>
+                                <option value="50">50 / pagina</option>
+                                <option value="all">Tutti</option>
+                            </select>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="catalog-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID Pezzo</th>
+                                        <th>Nome Pezzo</th>
+                                        <th>Colore</th>
+                                        <th>Costo (€)</th>
+                                        <th>Azioni</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="catalog-table-body">
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">Caricamento...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <small class="text-muted" id="catalog-info"></small>
+                            <ul class="pagination pagination-sm mb-0" id="catalog-pagination"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Fine Il Mio Catalogo Tab -->
+        </div>
+        <!-- Fine Tab Content -->
+    </div>
+
+    <!-- Modal: Aggiungi Pezzo al Catalogo -->
+    <div class="modal fade" id="addToCatalogModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Aggiungi Pezzo al Catalogo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="add-catalog-form">
+                        <div class="mb-3">
+                            <label class="form-label">Seleziona Pezzo</label>
+                            <select id="catalog-pid" class="form-select" required>
+                                <option value="">-- Seleziona un pezzo --</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-outline-primary btn-sm w-100" onclick="openCreatePartModal()">
+                                <i class="bi bi-plus-lg"></i> Crea Nuovo Pezzo
+                            </button>
+                        </div>
+                        <div class="mb-3">
+                            <label for="catalog-costo" class="form-label">Costo (€)</label>
+                            <input type="number" id="catalog-costo" class="form-control" step="0.01" min="0.01" required placeholder="Es: 12.50">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="button" class="btn btn-primary" onclick="saveCatalogItem()">Aggiungi</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Crea Nuovo Pezzo -->
+    <div class="modal fade" id="createPartModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Crea Nuovo Pezzo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="create-part-form">
+                        <div class="mb-3">
+                            <label for="part-nome" class="form-label">Nome Pezzo</label>
+                            <input type="text" id="part-nome" class="form-control" required placeholder="Es: Vite M8">
+                        </div>
+                        <div class="mb-3">
+                            <label for="part-colore" class="form-label">Colore</label>
+                            <input type="text" id="part-colore" class="form-control" required placeholder="Es: Argento">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="button" class="btn btn-primary" onclick="createNewPart()">Crea Pezzo</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Modifica Costo -->
+    <div class="modal fade" id="editCostModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Modifica Costo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="edit-cost-form">
+                        <input type="hidden" id="edit-pid">
+                        <div class="mb-3">
+                            <label class="form-label">Pezzo</label>
+                            <input type="text" id="edit-part-name" class="form-control" disabled readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-costo" class="form-label">Nuovo Costo (€)</label>
+                            <input type="number" id="edit-costo" class="form-control" step="0.01" min="0.01" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="button" class="btn btn-primary" onclick="updateCatalogCost()">Salva</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/config.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/dashboard.js"></script>
+</body>
+</html>

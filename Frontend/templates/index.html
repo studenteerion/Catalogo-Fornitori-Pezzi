@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestione Query</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/css/global.css" rel="stylesheet">
+    <link href="/css/index.css" rel="stylesheet">
+</head>
+
+<body class="bg-light">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/"><i class="bi bi-box-seam"></i> Catalogo Fornitori</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <div id="auth-buttons" class="d-flex gap-2">
+                    <!-- Pulsanti inseriti dinamicamente da JS -->
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-5">
+        <h1 class="mb-4">Esercizi Query SQL</h1>
+        <div id="home-error" class="alert alert-danger d-none" role="alert"></div>
+        <div id="home-loading" class="text-muted mb-3">Caricamento query disponibili...</div>
+        <div id="query-cards" class="row g-3">
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/config.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/main.js"></script>
+</body>
+
+</html>

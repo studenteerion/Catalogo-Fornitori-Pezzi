@@ -22,6 +22,18 @@ final class AdminController
         ]);
     }
 
+    public function getSupplier(Request $request, Response $response, array $args): Response
+    {
+        $fid = (int) ($args['fid'] ?? 0);
+        $supplier = $this->repository->getSupplierById($fid);
+
+        if ($supplier === null) {
+            return $this->json($response, ['error' => 'Fornitore non trovato.'], 404);
+        }
+
+        return $this->json($response, ['fornitore' => $supplier]);
+    }
+
     public function createSupplier(Request $request, Response $response): Response
     {
         $payload = $this->payload($request);
@@ -197,6 +209,232 @@ final class AdminController
             'message' => 'Record catalogo eliminato.',
         ]);
     }
+
+    // ==================== Query ====================
+
+    public function listQuery(Request $request, Response $response): Response
+    {
+        return $this->json($response, [
+            'query' => $this->repository->listQuery(),
+        ]);
+    }
+
+    public function getQuery(Request $request, Response $response, array $args): Response
+    {
+        $qid = (int) ($args['qid'] ?? 0);
+        $query = $this->repository->getQueryById($qid);
+
+        if ($query === null) {
+            return $this->json($response, ['error' => 'Query non trovata.'], 404);
+        }
+
+        return $this->json($response, ['query' => $query]);
+    }
+
+    public function createQuery(Request $request, Response $response): Response
+    {
+        $payload = $this->payload($request);
+        $descrizione = trim((string) ($payload['descrizione'] ?? ''));
+
+        if ($descrizione === '') {
+            return $this->json($response, [
+                'error' => 'Campo richiesto: descrizione.',
+            ], 422);
+        }
+
+        $query = $this->repository->createQuery($descrizione);
+
+        return $this->json($response, [
+            'query' => $query,
+        ], 201);
+    }
+
+    public function updateQuery(Request $request, Response $response, array $args): Response
+    {
+        $qid = (int) ($args['qid'] ?? 0);
+
+        try {
+            $query = $this->repository->updateQuery($qid, $this->payload($request));
+
+            return $this->json($response, [
+                'query' => $query,
+            ]);
+        } catch (DomainException $exception) {
+            return $this->json($response, [
+                'error' => $exception->getMessage(),
+            ], 422);
+        }
+    }
+
+    public function deleteQuery(Request $request, Response $response, array $args): Response
+    {
+        $qid = (int) ($args['qid'] ?? 0);
+        $deleted = $this->repository->deleteQuery($qid);
+
+        if (!$deleted) {
+            return $this->json($response, [
+                'error' => 'Query non trovata.',
+            ], 404);
+        }
+
+        return $this->json($response, [
+            'message' => 'Query eliminata.',
+        ]);
+    }
+
+    // ==================== Accounts ====================
+
+    public function listAccounts(Request $request, Response $response): Response
+    {
+        return $this->json($response, [
+            'accounts' => $this->repository->listAccounts(),
+        ]);
+    }
+
+    public function getSupplierAccount(Request $request, Response $response, array $args): Response
+    {
+        $aid = (int) ($args['aid'] ?? 0);
+
+        try {
+            $account = $this->repository->getSupplierAccountById($aid);
+
+            if ($account === null) {
+                return $this->json($response, [
+                    'error' => 'Account non trovato.',
+                ], 404);
+            }
+
+            return $this->json($response, [
+                'account' => $account,
+            ]);
+        } catch (DomainException $exception) {
+            return $this->json($response, [
+                'error' => $exception->getMessage(),
+            ], 422);
+        }
+    }
+
+    public function createSupplierAccount(Request $request, Response $response): Response
+    {
+        $payload = $this->payload($request);
+        $email = trim((string) ($payload['email'] ?? ''));
+        $password = (string) ($payload['password'] ?? '');
+        $fid = (int) ($payload['fid'] ?? 0);
+
+        if ($email === '' || $password === '' || $fid <= 0) {
+            return $this->json($response, [
+                'error' => 'Campi richiesti: email, password, fid.',
+            ], 422);
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $this->json($response, [
+                'error' => 'Email non valida.',
+            ], 422);
+        }
+
+        try {
+            $account = $this->repository->createSupplierAccount($email, $password, $fid);
+
+            return $this->json($response, [
+                'account' => $account,
+            ], 201);
+        } catch (DomainException $exception) {
+            $status = $exception->getMessage() === 'Email già registrata.' ? 409 : 422;
+
+            return $this->json($response, [
+                'error' => $exception->getMessage(),
+            ], $status);
+        }
+    }
+
+    public function updateSupplierAccount(Request $request, Response $response, array $args): Response
+    {
+        $aid = (int) ($args['aid'] ?? 0);
+        $payload = $this->payload($request);
+
+        if (array_key_exists('email', $payload)) {
+            $email = trim((string) $payload['email']);
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                return $this->json($response, [
+                    'error' => 'Email non valida.',
+                ], 422);
+            }
+            $payload['email'] = $email;
+        }
+
+        try {
+            $account = $this->repository->updateSupplierAccount($aid, $payload);
+
+            return $this->json($response, [
+                'account' => $account,
+            ]);
+        } catch (DomainException $exception) {
+            $status = $exception->getMessage() === 'Email già registrata.' ? 409 : 422;
+
+            return $this->json($response, [
+                'error' => $exception->getMessage(),
+            ], $status);
+        }
+    }
+
+    public function deleteAccount(Request $request, Response $response, array $args): Response
+    {
+        $aid = (int) ($args['aid'] ?? 0);
+
+        try {
+            $deleted = $this->repository->deleteAccount($aid);
+
+            if (!$deleted) {
+                return $this->json($response, [
+                    'error' => 'Account non trovato.',
+                ], 404);
+            }
+
+            return $this->json($response, [
+                'message' => 'Account eliminato.',
+            ]);
+        } catch (DomainException $exception) {
+            return $this->json($response, [
+                'error' => $exception->getMessage(),
+            ], 422);
+        }
+    }
+
+    public function createAdmin(Request $request, Response $response): Response
+    {
+        $payload = $this->payload($request);
+        $email = trim((string) ($payload['email'] ?? ''));
+        $password = (string) ($payload['password'] ?? '');
+
+        if ($email === '' || $password === '') {
+            return $this->json($response, [
+                'error' => 'Campi richiesti: email, password.',
+            ], 422);
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $this->json($response, [
+                'error' => 'Email non valida.',
+            ], 422);
+        }
+
+        try {
+            $account = $this->repository->createAdminAccount($email, $password);
+
+            return $this->json($response, [
+                'account' => $account,
+            ], 201);
+        } catch (DomainException $exception) {
+            $status = $exception->getMessage() === 'Email già registrata.' ? 409 : 422;
+
+            return $this->json($response, [
+                'error' => $exception->getMessage(),
+            ], $status);
+        }
+    }
+
+    // ==================== Helper Methods ====================
 
     /** @return array<string,mixed> */
     private function payload(Request $request): array

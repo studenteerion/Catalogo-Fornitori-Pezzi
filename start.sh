@@ -8,7 +8,7 @@ cd "$(dirname "$0")"
 
 trap 'kill 0' SIGINT SIGTERM EXIT
 
-#/usr/bin/php -S localhost:8080 -t frontend/public &
+/usr/bin/php -S localhost:8080 -t Frontend/public &
 /usr/bin/php -S localhost:8000 -t API/public &
 
 wait

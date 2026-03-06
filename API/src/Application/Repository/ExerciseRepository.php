@@ -34,7 +34,7 @@ final class ExerciseRepository
 
 
         1 => "
-            SELECT DISTINCT p.pnome AS nome
+            SELECT DISTINCT p.pid, p.pnome AS nome
             FROM Pezzi p
             JOIN Catalogo c ON c.pid = p.pid
             ORDER BY p.pnome
@@ -53,7 +53,7 @@ final class ExerciseRepository
         // In pratica, la query restituisce i fornitori che coprono l’intero insieme dei pezzi.
 
         2 => "
-            SELECT f.fnome AS nome
+            SELECT f.fid, f.fnome AS nome
             FROM Fornitori f
             WHERE NOT EXISTS (
                 SELECT 1
@@ -80,7 +80,7 @@ final class ExerciseRepository
         // In sintesi: restituisce tutti i fornitori che coprono **l’intero insieme dei pezzi rossi**.
 
         3 => "
-            SELECT f.fnome AS nome
+            SELECT f.fid, f.fnome AS nome
             FROM Fornitori f
             WHERE NOT EXISTS (
                 SELECT 1
@@ -106,7 +106,7 @@ final class ExerciseRepository
         // 4. ORDER BY p.pnome ordina alfabeticamente i pezzi selezionati.
 
         4 => "
-            SELECT p.pnome AS nome
+            SELECT p.pid, p.pnome AS nome
             FROM Pezzi p
             WHERE EXISTS (
                 SELECT 1
@@ -158,7 +158,7 @@ final class ExerciseRepository
         // Risultato: tutti i fornitori che vendono ciascun pezzo al prezzo massimo disponibile.
 
         6 => "
-            SELECT p.pnome AS nome_pezzo, f.fnome AS nome_fornitore
+            SELECT p.pid, f.fid, p.pnome AS nome_pezzo, f.fnome AS nome_fornitore
             FROM Catalogo c
             JOIN (
                 SELECT pid, MAX(costo) AS max_costo
@@ -261,12 +261,12 @@ final class ExerciseRepository
     ];
 
     private const ORDERABLE_COLUMNS = [
-        1 => ['nome'],
-        2 => ['nome'],
-        3 => ['nome'],
-        4 => ['nome'],
+        1 => ['pid', 'nome'],
+        2 => ['fid', 'nome'],
+        3 => ['fid', 'nome'],
+        4 => ['pid', 'nome'],
         5 => ['id'],
-        6 => ['nome_pezzo', 'nome_fornitore'],
+        6 => ['pid', 'fid', 'nome_pezzo', 'nome_fornitore'],
         7 => ['id'],
         8 => ['id'],
         9 => ['id'],
@@ -286,6 +286,19 @@ final class ExerciseRepository
         10 => ['id'],
     ];
 
+    private const QUERY_ENTITY_HINTS = [
+        1 => ['nome' => 'part'],
+        2 => ['nome' => 'supplier'],
+        3 => ['nome' => 'supplier'],
+        4 => ['nome' => 'part'],
+        5 => ['id' => 'supplier'],
+        6 => ['nome_pezzo' => 'part', 'nome_fornitore' => 'supplier'],
+        7 => ['id' => 'supplier'],
+        8 => ['id' => 'supplier'],
+        9 => ['id' => 'supplier'],
+        10 => ['id' => 'part'],
+    ];
+
     public function __construct(private PDO $pdo)
     {
     }
@@ -303,6 +316,34 @@ final class ExerciseRepository
         }
 
         return $items;
+    }
+
+    public function getSupplierDetailsById(int $fid): ?array
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT fid, fnome, indirizzo
+             FROM Fornitori
+             WHERE fid = :fid
+             LIMIT 1'
+        );
+        $statement->execute(['fid' => $fid]);
+
+        $row = $statement->fetch();
+        return $row === false ? null : $row;
+    }
+
+    public function getPartDetailsById(int $pid): ?array
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT pid, pnome, colore
+             FROM Pezzi
+             WHERE pid = :pid
+             LIMIT 1'
+        );
+        $statement->execute(['pid' => $pid]);
+
+        $row = $statement->fetch();
+        return $row === false ? null : $row;
     }
 
     /** @return array{description:string,query:string,rows:array<int,array<string,mixed>>,pagination:array<string,int>} */
@@ -367,6 +408,7 @@ final class ExerciseRepository
 
         $statement = $this->pdo->query($paginatedQuery);
         $rows = $statement->fetchAll();
+        $rows = $this->enrichRows($id, $rows);
 
         return [
             'description' => $description,
@@ -378,6 +420,220 @@ final class ExerciseRepository
                 'total' => $total,
                 'totalPages' => $totalPages,
             ],
+        ];
+    }
+
+    /** @param array<int,array<string,mixed>> $rows
+     *  @return array<int,array<string,mixed>>
+     */
+    private function enrichRows(int $queryId, array $rows): array
+    {
+        $hints = self::QUERY_ENTITY_HINTS[$queryId] ?? [];
+        $supplierByIdCache = [];
+        $partByIdCache = [];
+        $suppliersByNameCache = [];
+        $partsByNameCache = [];
+
+        foreach ($rows as $index => $row) {
+            $details = [];
+
+            if (array_key_exists('fid', $row) && is_numeric((string) $row['fid'])) {
+                $supplier = $this->getSupplierById((int) $row['fid'], $supplierByIdCache);
+                if ($supplier !== null) {
+                    $details['fornitore'] = $supplier;
+                }
+            }
+
+            if (array_key_exists('pid', $row) && is_numeric((string) $row['pid'])) {
+                $part = $this->getPartById((int) $row['pid'], $partByIdCache);
+                if ($part !== null) {
+                    $details['pezzo'] = $part;
+                }
+            }
+
+            if (array_key_exists('id', $row) && is_numeric((string) $row['id'])) {
+                $entityType = $hints['id'] ?? null;
+                $entityId = (int) $row['id'];
+
+                if ($entityType === 'supplier') {
+                    $supplier = $this->getSupplierById($entityId, $supplierByIdCache);
+                    if ($supplier !== null) {
+                        $details['fornitore'] = $supplier;
+                    }
+                }
+
+                if ($entityType === 'part') {
+                    $part = $this->getPartById($entityId, $partByIdCache);
+                    if ($part !== null) {
+                        $details['pezzo'] = $part;
+                    }
+                }
+            }
+
+            foreach ($hints as $column => $entityType) {
+                if (!is_string($column) || $column === 'id') {
+                    continue;
+                }
+
+                if ($entityType === 'supplier' && array_key_exists('fornitore', $details)) {
+                    continue;
+                }
+
+                if ($entityType === 'part' && array_key_exists('pezzo', $details)) {
+                    continue;
+                }
+
+                if (!array_key_exists($column, $row) || !is_string($row[$column])) {
+                    continue;
+                }
+
+                $name = trim($row[$column]);
+                if ($name === '') {
+                    continue;
+                }
+
+                if ($entityType === 'supplier') {
+                    $matches = $this->findSuppliersByName($name, $suppliersByNameCache);
+                    if ($matches !== []) {
+                        $details['fornitori_matches'] = $matches;
+
+                        if (count($matches) === 1 && !array_key_exists('fornitore', $details)) {
+                            $details['fornitore'] = $matches[0];
+                        }
+
+                        $details['fornitore_ref'] = [
+                            'status' => count($matches) === 1 ? 'unique' : 'ambiguous',
+                            'id' => count($matches) === 1 ? (int) $matches[0]['id'] : null,
+                            'count' => count($matches),
+                        ];
+                    }
+                }
+
+                if ($entityType === 'part') {
+                    $matches = $this->findPartsByName($name, $partsByNameCache);
+                    if ($matches !== []) {
+                        $details['pezzi_matches'] = $matches;
+
+                        if (count($matches) === 1 && !array_key_exists('pezzo', $details)) {
+                            $details['pezzo'] = $matches[0];
+                        }
+
+                        $details['pezzo_ref'] = [
+                            'status' => count($matches) === 1 ? 'unique' : 'ambiguous',
+                            'id' => count($matches) === 1 ? (int) $matches[0]['id'] : null,
+                            'count' => count($matches),
+                        ];
+                    }
+                }
+            }
+
+            if ($details !== []) {
+                $row['_details'] = $details;
+            }
+
+            $rows[$index] = $row;
+        }
+
+        return $rows;
+    }
+
+    /** @param array<int,array<string,mixed>|null> $cache
+     *  @return array<string,mixed>|null
+     */
+    private function getSupplierById(int $fid, array &$cache): ?array
+    {
+        if (array_key_exists($fid, $cache)) {
+            return $cache[$fid];
+        }
+
+        $statement = $this->pdo->prepare('SELECT fid, fnome, indirizzo FROM Fornitori WHERE fid = :fid LIMIT 1');
+        $statement->execute(['fid' => $fid]);
+        $result = $statement->fetch();
+
+        $cache[$fid] = $result === false ? null : $this->mapSupplierRow($result);
+        return $cache[$fid];
+    }
+
+    /** @param array<int,array<string,mixed>|null> $cache
+     *  @return array<string,mixed>|null
+     */
+    private function getPartById(int $pid, array &$cache): ?array
+    {
+        if (array_key_exists($pid, $cache)) {
+            return $cache[$pid];
+        }
+
+        $statement = $this->pdo->prepare('SELECT pid, pnome, colore FROM Pezzi WHERE pid = :pid LIMIT 1');
+        $statement->execute(['pid' => $pid]);
+        $result = $statement->fetch();
+
+        $cache[$pid] = $result === false ? null : $this->mapPartRow($result);
+        return $cache[$pid];
+    }
+
+    /** @param array<string,array<int,array<string,mixed>>> $cache
+     *  @return array<int,array<string,mixed>>
+     */
+    private function findSuppliersByName(string $name, array &$cache): array
+    {
+        $cacheKey = strtolower($name);
+        if (array_key_exists($cacheKey, $cache)) {
+            return $cache[$cacheKey];
+        }
+
+        $statement = $this->pdo->prepare(
+            'SELECT fid, fnome, indirizzo FROM Fornitori WHERE LOWER(fnome) = LOWER(:nome) ORDER BY fid'
+        );
+        $statement->execute(['nome' => $name]);
+
+        $rows = $statement->fetchAll();
+        $cache[$cacheKey] = array_map(fn (array $row): array => $this->mapSupplierRow($row), $rows);
+
+        return $cache[$cacheKey];
+    }
+
+    /** @param array<string,array<int,array<string,mixed>>> $cache
+     *  @return array<int,array<string,mixed>>
+     */
+    private function findPartsByName(string $name, array &$cache): array
+    {
+        $cacheKey = strtolower($name);
+        if (array_key_exists($cacheKey, $cache)) {
+            return $cache[$cacheKey];
+        }
+
+        $statement = $this->pdo->prepare(
+            'SELECT pid, pnome, colore FROM Pezzi WHERE LOWER(pnome) = LOWER(:nome) ORDER BY pid'
+        );
+        $statement->execute(['nome' => $name]);
+
+        $rows = $statement->fetchAll();
+        $cache[$cacheKey] = array_map(fn (array $row): array => $this->mapPartRow($row), $rows);
+
+        return $cache[$cacheKey];
+    }
+
+    /** @param array<string,mixed> $row
+     *  @return array<string,mixed>
+     */
+    private function mapSupplierRow(array $row): array
+    {
+        return [
+            'id' => isset($row['fid']) ? (int) $row['fid'] : null,
+            'nome' => (string) ($row['fnome'] ?? ''),
+            'indirizzo' => (string) ($row['indirizzo'] ?? ''),
+        ];
+    }
+
+    /** @param array<string,mixed> $row
+     *  @return array<string,mixed>
+     */
+    private function mapPartRow(array $row): array
+    {
+        return [
+            'id' => isset($row['pid']) ? (int) $row['pid'] : null,
+            'nome' => (string) ($row['pnome'] ?? ''),
+            'colore' => (string) ($row['colore'] ?? ''),
         ];
     }
 }

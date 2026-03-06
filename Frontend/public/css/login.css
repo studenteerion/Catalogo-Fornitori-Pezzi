@@ -1,0 +1,147 @@
+body {
+    background: white;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.login-container {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    width: 100%;
+    max-width: 450px;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid #e0e7ff;
+}
+
+.login-header {
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+    color: white;
+    padding: 40px 30px;
+    text-align: center;
+}
+
+.login-header h1 {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.login-header p {
+    font-size: 16px;
+    margin: 0;
+    opacity: 0.95;
+}
+
+.login-body {
+    padding: 40px 30px;
+}
+
+.nav-tabs {
+    border-bottom: 2px solid #e5e7eb;
+    margin-bottom: 30px;
+}
+
+.nav-tabs .nav-link {
+    color: #6b7280;
+    font-weight: 600;
+    border: none;
+    border-bottom: 3px solid transparent;
+    padding: 12px 20px;
+}
+
+.nav-tabs .nav-link:hover {
+    color: #2563eb;
+    border-bottom-color: #2563eb;
+}
+
+.nav-tabs .nav-link.active {
+    color: #2563eb;
+    border-bottom-color: #2563eb;
+    background: none;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-label {
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 8px;
+    font-size: 15px;
+}
+
+.form-control {
+    padding: 12px 15px;
+    border: 2px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 15px;
+    transition: border-color 0.3s;
+}
+
+.form-control:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.25);
+}
+
+.btn-primary-gradient {
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+    border: none;
+    color: white;
+    font-weight: 600;
+    padding: 12px 20px;
+    border-radius: 6px;
+    width: 100%;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-primary-gradient:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(37, 99, 235, 0.3);
+    color: white;
+}
+
+.btn-primary-gradient:active {
+    transform: translateY(0);
+}
+
+.alert {
+    border-radius: 6px;
+    margin-bottom: 20px;
+    display: none;
+}
+
+.alert.show {
+    display: block;
+}
+
+.tab-content {
+    padding: 0;
+}
+
+.hidden {
+    display: none;
+}
+
+.back-button {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+}
+
+.back-button a {
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 16px;
+    transition: color 0.3s;
+}
+
+.back-button a:hover {
+    color: #1e40af;
+}
