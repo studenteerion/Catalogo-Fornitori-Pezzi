@@ -15,13 +15,14 @@ class CorsMiddleware implements MiddlewareInterface
     {
         $origin = $request->getHeaderLine('Origin');
         
-        // Rispondi sempre con CORS permissivo
+        // Chiude subito le richieste preflight; le altre proseguono nel middleware successivo.
         if ($request->getMethod() === 'OPTIONS') {
             $response = new \Slim\Psr7\Response(200);
         } else {
             $response = $handler->handle($request);
         }
 
+        // Riporta l'origin del client quando presente per supportare richieste cross-origin con credenziali.
         return $response
             ->withHeader('Access-Control-Allow-Origin', $origin ?: '*')
             ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')

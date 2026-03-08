@@ -11,12 +11,20 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 
 final class MeController
 {
+    /**
+     * Inietta il repository auth per leggere/aggiornare l'account autenticato.
+     */
     public function __construct(private AuthRepository $repository)
     {
     }
 
+    /**
+     * Restituisce il profilo dell'utente autenticato (`/me`).
+     * L'id account viene letto dall'attributo `authAccount` impostato dal middleware.
+     */
     public function show(Request $request, Response $response): Response
     {
+        // authAccount viene iniettato da AuthMiddleware dopo la validazione del token.
         $authAccount = $request->getAttribute('authAccount');
         $aid = (int) ($authAccount['aid'] ?? 0);
 
@@ -33,8 +41,13 @@ final class MeController
         ]);
     }
 
+    /**
+     * Aggiorna i dati del profilo autenticato (email, password, dati fornitore).
+     * Le regole di dominio sono centralizzate nel repository.
+     */
     public function update(Request $request, Response $response): Response
     {
+        // Gli aggiornamenti sono sempre limitati all'account autenticato corrente.
         $authAccount = $request->getAttribute('authAccount');
         $aid = (int) ($authAccount['aid'] ?? 0);
         $payload = $this->payload($request);
@@ -54,7 +67,11 @@ final class MeController
         }
     }
 
-    /** @return array<string,mixed> */
+    /**
+     * Converte il body JSON in array associativo.
+     *
+     * @return array<string,mixed>
+     */
     private function payload(Request $request): array
     {
         $rawBody = (string) $request->getBody();
@@ -67,7 +84,11 @@ final class MeController
         return is_array($data) ? $data : [];
     }
 
-    /** @param array<string,mixed> $data */
+    /**
+     * Serializza e scrive una risposta JSON standardizzata.
+     *
+     * @param array<string,mixed> $data
+     */
     private function json(Response $response, array $data, int $statusCode = 200): Response
     {
         $payload = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);

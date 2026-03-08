@@ -11,12 +11,17 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 
 final class SupplierController
 {
+    /**
+     * Inietta il repository con operazioni dedicate al fornitore autenticato.
+     */
     public function __construct(private SupplierRepository $repository)
     {
     }
 
     /**
-     * Lista il catalogo del fornitore loggato
+     * Restituisce il catalogo del fornitore autenticato.
+     *
+     * L'identita del fornitore viene ricavata da `authAccount` popolato dal middleware.
      */
     public function listMyCatalog(Request $request, Response $response): Response
     {
@@ -36,7 +41,9 @@ final class SupplierController
     }
 
     /**
-     * Lista tutti i pezzi disponibili (per selezionarli)
+     * Elenca tutti i pezzi disponibili nel sistema.
+     *
+     * Endpoint utile per consentire al fornitore di selezionare pezzi da inserire in catalogo.
      */
     public function listAllParts(Request $request, Response $response): Response
     {
@@ -48,7 +55,8 @@ final class SupplierController
     }
 
     /**
-     * Crea un nuovo pezzo
+     * Crea un nuovo pezzo nell'anagrafica pezzi.
+     * Valida `pnome` e `colore` prima dell'inserimento.
      */
     public function createPart(Request $request, Response $response): Response
     {
@@ -70,7 +78,10 @@ final class SupplierController
     }
 
     /**
-     * Aggiunge un pezzo al catalogo del fornitore
+     * Aggiunge un pezzo al catalogo del fornitore autenticato con relativo costo.
+     *
+     * Richiede `pid` valido e `costo > 0`; conflitti e vincoli dominio
+     * vengono restituiti come errori 422.
      */
     public function addToCatalog(Request $request, Response $response): Response
     {
@@ -106,7 +117,7 @@ final class SupplierController
     }
 
     /**
-     * Modifica il costo di un pezzo nel catalogo
+     * Aggiorna il costo di un pezzo gia presente nel catalogo del fornitore.
      */
     public function updateCatalogItem(Request $request, Response $response, array $args): Response
     {
@@ -142,7 +153,8 @@ final class SupplierController
     }
 
     /**
-     * Rimuove un pezzo dal catalogo del fornitore
+     * Rimuove un pezzo dal catalogo del fornitore autenticato.
+     * Restituisce 404 se l'elemento non e presente.
      */
     public function removeFromCatalog(Request $request, Response $response, array $args): Response
     {
@@ -177,8 +189,13 @@ final class SupplierController
 
     // ==================== Helper Methods ====================
 
+    /**
+     * Estrae il `fid` dell'utente autenticato dagli attributi request.
+     * Ritorna null se assente o non coerente con un account fornitore.
+     */
     private function getSupplierIdFromAuth(Request $request): ?int
     {
+        // authAccount viene allegato da AuthMiddleware dopo la validazione token.
         $account = $request->getAttribute('authAccount');
         
         if ($account === null || !isset($account['fid'])) {
@@ -188,8 +205,13 @@ final class SupplierController
         return (int) $account['fid'];
     }
 
+    /**
+     * Converte il body JSON in array associativo.
+     * Per body vuoto o JSON non valido ritorna array vuoto.
+     */
     private function payload(Request $request): array
     {
+        // Parsing JSON difensivo: body vuoto/non valido produce payload vuoto.
         $rawBody = (string) $request->getBody();
         if ($rawBody === '') {
             return [];
@@ -200,6 +222,10 @@ final class SupplierController
         return is_array($data) ? $data : [];
     }
 
+    /**
+     * Utility di serializzazione JSON usata da tutte le azioni del controller.
+     * Accetta anche tipi non-array (`mixed`) per uniformare le risposte.
+     */
     private function json(Response $response, mixed $data, int $status = 200): Response
     {
         $payload = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);

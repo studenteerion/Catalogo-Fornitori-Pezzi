@@ -23,11 +23,18 @@ return function (
     RoleMiddleware $adminRoleMiddleware,
     RoleMiddleware $supplierRoleMiddleware
 ): void {
+    // Mappa protezione endpoint:
+    // - pubblico: `/`, `/{id}`, `/fornitori/{fid}`, `/pezzi/{pid}`, `/auth/*`
+    // - autenticato: `/me/*`
+    // - autenticato + ruolo ADMIN: `/admin/*`
+    // - autenticato + ruolo FORNITORE: `/supplier/*`
+
     // Catch-all per gestire le richieste OPTIONS (preflight CORS) su TUTTI i percorsi
     $app->options('/{routes:.*}', function ($request, $response) {
         return $response;
     });
 
+    // Endpoint pubblici per le query (senza autenticazione).
     $app->get('/', [$exerciseController, 'listQueries']);
     $app->get('/{id:[0-9]+}', [$exerciseController, 'runQuery']);
 
@@ -35,6 +42,8 @@ return function (
     $app->get('/fornitori/{fid:[0-9]+}', [$exerciseController, 'getSupplier']);
     $app->get('/pezzi/{pid:[0-9]+}', [$exerciseController, 'getPart']);
 
+    // Gestione autenticazione e sessione.
+    // Queste rotte non richiedono authMiddleware perche servono proprio a creare/gestire la sessione.
     $app->group('/auth', function (RouteCollectorProxy $group) use ($authController): void {
         $group->post('/register', [$authController, 'register']);
         $group->post('/login',    [$authController, 'login']);
@@ -42,6 +51,8 @@ return function (
         $group->post('/logout',   [$authController, 'logout']);
     });
 
+    // Endpoint relativi all'account autenticato corrente.
+    // AuthMiddleware valida token (cookie o bearer) e inietta `authAccount` nella request.
     $app->group('/me', function (RouteCollectorProxy $group) use ($meController): void {
         $group->get('', [$meController, 'show']);
         $group->patch('', [$meController, 'update']);
@@ -83,7 +94,11 @@ return function (
 
         // Admins
         $group->post('/admins', [$adminController, 'createAdmin']);
-    })->add($adminRoleMiddleware)->add($authMiddleware);
+    })
+    // Ordine middleware Slim: l'ultimo `add()` viene eseguito per primo.
+    // Qui quindi passa prima da AuthMiddleware (autenticazione) e poi da RoleMiddleware (autorizzazione).
+    ->add($adminRoleMiddleware)
+    ->add($authMiddleware);
 
     $app->group('/supplier', function (RouteCollectorProxy $group) use ($supplierController): void {
         // Catalogo del fornitore
@@ -95,6 +110,9 @@ return function (
         // Pezzi (lista tutti per selezione, creazione nuovo)
         $group->get('/pezzi', [$supplierController, 'listAllParts']);
         $group->post('/pezzi', [$supplierController, 'createPart']);
-    })->add($supplierRoleMiddleware)->add($authMiddleware);
+    })
+    // Stessa strategia: prima autenticazione, poi controllo ruolo FORNITORE.
+    ->add($supplierRoleMiddleware)
+    ->add($authMiddleware);
 
 };

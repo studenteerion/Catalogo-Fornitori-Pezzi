@@ -22,7 +22,9 @@ require __DIR__ . '/../vendor/autoload.php';
 
 $settings = require __DIR__ . '/../config/settings.php';
 
+// Istanza PDO condivisa da repository e controller per tutto il ciclo della richiesta.
 $pdo = (new PdoFactory($settings['db']))->create();
+// Garantisce l'esistenza delle tabelle di auth/sessione prima di gestire richieste.
 (new AuthSchemaManager($pdo))->ensure();
 
 $exerciseRepository = new ExerciseRepository($pdo);
@@ -41,16 +43,21 @@ $exerciseController = new ExerciseController($exerciseRepository, $adminReposito
 
 $app = AppFactory::create();
 
+// Stack middleware globale: CORS -> parsing body -> routing -> gestione errori.
 $app->add(new CorsMiddleware());
 $app->addBodyParsingMiddleware();
 $app->addRoutingMiddleware();
 $app->addErrorMiddleware(true, true, true);
 
+// Middleware di sicurezza usati nelle route:
+// - AuthMiddleware: valida sessione/token e allega `authAccount` alla request.
+// - RoleMiddleware: applica autorizzazione basata su ruolo (`ADMIN`/`FORNITORE`).
 $authMiddleware = new AuthMiddleware($authRepository, $app->getResponseFactory());
 $adminRoleMiddleware = new RoleMiddleware('ADMIN', $app->getResponseFactory());
 $supplierRoleMiddleware = new RoleMiddleware('FORNITORE', $app->getResponseFactory());
 
 $routes = require __DIR__ . '/../config/routes.php';
+// La registrazione delle route e' delegata a config/routes.php per mantenere pulito il bootstrap.
 $routes(
 	$app,
 	$exerciseController,

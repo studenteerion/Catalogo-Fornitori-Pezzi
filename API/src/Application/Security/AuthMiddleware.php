@@ -13,12 +13,24 @@ use Psr\Http\Server\RequestHandlerInterface;
 
 final class AuthMiddleware implements MiddlewareInterface
 {
+    /**
+     * Inietta repository auth e response factory per produrre risposte 401 coerenti.
+     */
     public function __construct(
         private AuthRepository $repository,
         private ResponseFactoryInterface $responseFactory
     ) {
     }
 
+    /**
+     * Protegge gli endpoint richiedendo una sessione valida.
+     *
+     * Flusso:
+     * 1) Estrae token da cookie `auth_token` o header Bearer.
+     * 2) Verifica token su DB (esistente, non revocato, non scaduto).
+     * 3) In caso positivo allega `authAccount` alla request e passa al prossimo handler.
+     * 4) In caso negativo interrompe la pipeline con 401 JSON.
+     */
     public function process(Request $request, RequestHandlerInterface $handler): Response
     {
         // Prova prima dal cookie, poi dal Bearer token
@@ -37,9 +49,14 @@ final class AuthMiddleware implements MiddlewareInterface
             ], 401);
         }
 
+        // I controller successivi leggono l'account autenticato dagli attributi della request.
         return $handler->handle($request->withAttribute('authAccount', $account));
     }
 
+    /**
+     * Estrae il token con priorita al cookie (scenario browser),
+     * mantenendo fallback Bearer per client API/tooling.
+     */
     private function extractToken(Request $request): ?string
     {
         // 1. Prova a estrarre dal cookie HttpOnly
@@ -52,6 +69,9 @@ final class AuthMiddleware implements MiddlewareInterface
         return $this->extractBearerToken($request);
     }
 
+    /**
+     * Parser minimale per header `Authorization: Bearer <token>`.
+     */
     private function extractBearerToken(Request $request): ?string
     {
         $header = $request->getHeaderLine('Authorization');
@@ -65,7 +85,11 @@ final class AuthMiddleware implements MiddlewareInterface
         return $token === '' ? null : $token;
     }
 
-    /** @param array<string,mixed> $data */
+    /**
+     * Genera una risposta JSON uniforme per errori di autenticazione.
+     *
+     * @param array<string,mixed> $data
+     */
     private function jsonResponse(array $data, int $status): Response
     {
         $response = $this->responseFactory->createResponse($status);

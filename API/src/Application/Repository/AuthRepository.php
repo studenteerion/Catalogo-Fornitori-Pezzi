@@ -12,17 +12,31 @@ final class AuthRepository
 {
     private const ACCESS_TOKEN_TTL_SECONDS = 28800;
 
+    /**
+     * Inietta la connessione PDO condivisa.
+     */
     public function __construct(private PDO $pdo)
     {
     }
 
-    /** @param array{email:string,password:string,fnome:string,indirizzo:string} $data */
+    /**
+     * Registra un nuovo fornitore creando anche il relativo account.
+     *
+     * Operazioni principali:
+     * - verifica unicita email;
+     * - inserimento in `Fornitori`;
+     * - inserimento in `Account` con password hashata;
+     * - commit transazionale e creazione payload autenticazione.
+     *
+     * @param array{email:string,password:string,fnome:string,indirizzo:string} $data
+     */
     public function registerSupplier(array $data): array
     {
         if ($this->findAccountByEmail($data['email']) !== null) {
             throw new DomainException('Email già registrata.');
         }
 
+        // Creazione fornitore + account atomica per evitare righe orfane.
         $this->pdo->beginTransaction();
 
         try {
@@ -61,6 +75,11 @@ final class AuthRepository
         }
     }
 
+    /**
+     * Verifica credenziali email/password e crea una nuova sessione se valide.
+     *
+     * Ritorna `null` quando account non esiste o password non corretta.
+     */
     public function login(string $email, string $password): ?array
     {
         $account = $this->findAccountByEmail($email);
@@ -72,6 +91,12 @@ final class AuthRepository
         return $this->buildAuthPayload((int) $account['aid']);
     }
 
+    /**
+     * Esegue refresh della sessione a partire da un access token valido.
+     *
+     * Se il token e valido, viene revocato e sostituito con un nuovo token.
+     * Ritorna `null` se il token non corrisponde a una sessione attiva.
+     */
     public function refresh(string $accessToken): ?array
     {
         $account = $this->findAccountByAccessToken($accessToken);
@@ -80,16 +105,28 @@ final class AuthRepository
             return null;
         }
 
+        // Rotazione token: revoca il token precedente e ne genera uno nuovo.
         $this->revokeToken($accessToken);
 
         return $this->buildAuthPayload((int) $account['aid']);
     }
 
+    /**
+     * Esegue logout revocando il token corrente.
+     */
     public function logout(string $accessToken): void
     {
         $this->revokeToken($accessToken);
     }
 
+    /**
+     * Recupera account associato a un token di sessione attivo.
+     *
+     * Condizioni di validita token:
+     * - hash corrispondente;
+     * - `revoked_at` nullo;
+     * - `expires_at` nel futuro.
+     */
     public function findAccountByAccessToken(string $accessToken): ?array
     {
         $statement = $this->pdo->prepare(
@@ -103,6 +140,7 @@ final class AuthRepository
              LIMIT 1'
         );
         $statement->execute([
+            // Salva solo l'hash del token nel DB, senza persistere token in chiaro lato server.
             'token_hash' => hash('sha256', $accessToken),
         ]);
 
@@ -111,6 +149,9 @@ final class AuthRepository
         return $row === false ? null : $this->normalizeAccount($row);
     }
 
+    /**
+     * Recupera i dati account (ed eventuale fornitore associato) da `aid`.
+     */
     public function getAccountById(int $aid): ?array
     {
         $statement = $this->pdo->prepare(
@@ -127,7 +168,16 @@ final class AuthRepository
         return $row === false ? null : $this->normalizeAccount($row);
     }
 
-    /** @param array<string,mixed> $fields */
+    /**
+     * Aggiorna il profilo account con supporto update parziale.
+     *
+     * Campi gestiti:
+     * - `email` (con controllo formato e unicita);
+     * - coppia `oldPassword`/`newPassword` per cambio password;
+     * - `fnome`/`indirizzo` del fornitore collegato.
+     *
+     * @param array<string,mixed> $fields
+     */
     public function updateAccount(int $aid, array $fields): array
     {
         $hasEmail = array_key_exists('email', $fields);
@@ -245,6 +295,15 @@ final class AuthRepository
         return $account;
     }
 
+    /**
+     * Cambia password verificando prima quella attuale.
+     *
+     * Ritorna:
+     * - `true` se il cambio avviene;
+     * - `false` se la password attuale non corrisponde.
+     *
+     * Genera eccezione se account non trovato.
+     */
     public function changePassword(int $aid, string $oldPassword, string $newPassword): bool
     {
         $statement = $this->pdo->prepare(
@@ -274,6 +333,9 @@ final class AuthRepository
         return true;
     }
 
+    /**
+     * Restituisce il fornitore collegato a un account (`aid`).
+     */
     public function getSupplierByAccountId(int $aid): ?array
     {
         $statement = $this->pdo->prepare(
@@ -297,7 +359,14 @@ final class AuthRepository
         ];
     }
 
-    /** @param array<string,mixed> $fields */
+    /**
+     * Aggiorna i dati fornitore partendo da un account utente.
+     *
+     * Sono aggiornabili `fnome` e `indirizzo`; se nessun campo e fornito
+     * viene sollevata eccezione dominio.
+     *
+     * @param array<string,mixed> $fields
+     */
     public function updateSupplierByAccountId(int $aid, array $fields): ?array
     {
         $supplier = $this->getSupplierByAccountId($aid);
@@ -330,6 +399,11 @@ final class AuthRepository
         return $this->getSupplierByAccountId($aid);
     }
 
+    /**
+     * Costruisce il payload di autenticazione completo.
+     *
+     * Include token appena generato, data di scadenza e dati account normalizzati.
+     */
     private function buildAuthPayload(int $aid): array
     {
         $tokenData = $this->createAccessToken($aid);
@@ -346,7 +420,14 @@ final class AuthRepository
         ];
     }
 
-    /** @return array{token:string,expiresAt:string} */
+    /**
+     * Crea e persiste un nuovo access token per l'account indicato.
+     *
+     * Il token generato e casuale (48 byte), viene salvato nel DB solo come hash
+     * SHA-256 insieme alle date di creazione/scadenza.
+     *
+     * @return array{token:string,expiresAt:string}
+     */
     private function createAccessToken(int $aid): array
     {
         $token = rtrim(strtr(base64_encode(random_bytes(48)), '+/', '-_'), '=');
@@ -371,6 +452,10 @@ final class AuthRepository
         ];
     }
 
+    /**
+     * Revoca un token attivo impostando `revoked_at`.
+     * L'operazione e idempotente: token gia revocati restano invariati.
+     */
     private function revokeToken(string $accessToken): void
     {
         $statement = $this->pdo->prepare(
@@ -385,6 +470,10 @@ final class AuthRepository
         ]);
     }
 
+    /**
+     * Cerca un account per email.
+     * Ritorna `null` se l'email non esiste nel sistema.
+     */
     private function findAccountByEmail(string $email): ?array
     {
         $statement = $this->pdo->prepare(
@@ -400,7 +489,12 @@ final class AuthRepository
         return $row === false ? null : $row;
     }
 
-    /** @param array<string,mixed> $row */
+    /**
+     * Normalizza una riga SQL in struttura account coerente per l'API.
+     * Converte tipi numerici e gestisce campi nullable.
+     *
+     * @param array<string,mixed> $row
+     */
     private function normalizeAccount(array $row): array
     {
         return [

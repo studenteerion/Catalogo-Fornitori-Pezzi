@@ -12,10 +12,17 @@ use Throwable;
 
 final class ExerciseController
 {
+    /**
+     * Inietta il repository che contiene query predefinite e lookup di dettaglio.
+     */
     public function __construct(private ExerciseRepository $repository)
     {
     }
 
+    /**
+     * Endpoint di health-check minimale.
+     * Utile per verificare rapidamente che API e routing siano operativi.
+     */
     public function health(Request $request, Response $response): Response
     {
         return $this->json($response, [
@@ -23,6 +30,9 @@ final class ExerciseController
         ]);
     }
 
+    /**
+     * Restituisce elenco id/descrizione delle query disponibili.
+     */
     public function listQueries(Request $request, Response $response): Response
     {
         return $this->json($response, [
@@ -30,11 +40,24 @@ final class ExerciseController
         ]);
     }
 
+    /**
+     * Esegue una query predefinita identificata da `id`.
+     *
+     * Supporta:
+     * - Paginazione opzionale (`page`, `pageSize`).
+     * - Ordinamento opzionale (`orderBy`, `orderDir`) validato dal repository.
+     *
+     * Risposte:
+     * - 200 con risultati e metadati di paginazione.
+     * - 400 per id query non valido.
+     * - 500 per errori non gestiti durante l'esecuzione.
+     */
     public function runQuery(Request $request, Response $response, array $args): Response
     {
         $queryId = (int) ($args['id'] ?? 0);
         $queryParams = $request->getQueryParams();
 
+        // I parametri di paginazione sono opzionali, ma se presenti devono essere interi positivi.
         $page = isset($queryParams['page'])
             ? filter_var($queryParams['page'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]])
             : null;
@@ -42,6 +65,7 @@ final class ExerciseController
             ? filter_var($queryParams['pageSize'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]])
             : null;
 
+        // L'ordinamento viene sanificato a valle con whitelist colonne per id query.
         $orderBy = isset($queryParams['orderBy']) ? trim((string) $queryParams['orderBy']) : null;
         $orderDir = isset($queryParams['orderDir']) ? trim((string) $queryParams['orderDir']) : null;
 
@@ -71,6 +95,9 @@ final class ExerciseController
         }
     }
 
+    /**
+     * Restituisce il dettaglio di un fornitore pubblico per `fid`.
+     */
     public function getSupplier(Request $request, Response $response, array $args): Response
     {
         $fid = (int) ($args['fid'] ?? 0);
@@ -95,6 +122,9 @@ final class ExerciseController
         }
     }
 
+    /**
+     * Restituisce il dettaglio di un pezzo pubblico per `pid`.
+     */
     public function getPart(Request $request, Response $response, array $args): Response
     {
         $pid = (int) ($args['pid'] ?? 0);
@@ -119,7 +149,11 @@ final class ExerciseController
         }
     }
 
-    /** @param array<string,mixed> $data */
+    /**
+     * Utility locale per produrre risposte JSON con status custom.
+     *
+     * @param array<string,mixed> $data
+     */
     private function json(Response $response, array $data, int $statusCode = 200): Response
     {
         $payload = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);

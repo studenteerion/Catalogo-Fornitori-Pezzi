@@ -14,6 +14,7 @@ final class AuthSchemaManager
 
     public function ensure(): void
     {
+        // Crea la tabella sessioni solo se mancante; sicuro da chiamare a ogni avvio.
         $this->pdo->exec(
             "
             CREATE TABLE IF NOT EXISTS AccountSession (

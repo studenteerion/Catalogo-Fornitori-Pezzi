@@ -15,6 +15,7 @@ final class PdoFactory
 
     public function create(): PDO
     {
+        // Valida subito il driver DSN per fallire rapidamente con un errore leggibile.
         $driver = strtolower((string) strtok($this->dbConfig['dsn'], ':'));
         $availableDrivers = PDO::getAvailableDrivers();
 
@@ -33,6 +34,7 @@ final class PdoFactory
             $this->dbConfig['user'],
             $this->dbConfig['pass'],
             [
+                // Eccezioni + fetch associativo semplificano il codice nei repository.
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             ]

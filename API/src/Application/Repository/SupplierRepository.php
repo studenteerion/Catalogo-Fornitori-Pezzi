@@ -9,12 +9,18 @@ use PDO;
 
 final class SupplierRepository
 {
+    /**
+     * Inietta la connessione PDO usata dalle operazioni del fornitore.
+     */
     public function __construct(private PDO $pdo)
     {
     }
 
     /**
-     * Restituisce il catalogo di un fornitore con i dettagli dei pezzi
+     * Restituisce il catalogo di un fornitore con i dettagli dei pezzi.
+     *
+     * Ogni riga contiene fornitore, pezzo e costo corrente.
+     *
      * @return array<int,array<string,mixed>>
      */
     public function getSupplierCatalog(int $fid): array
@@ -32,7 +38,8 @@ final class SupplierRepository
     }
 
     /**
-     * Lista tutti i pezzi disponibili
+        * Lista tutti i pezzi disponibili per consentire inserimento in catalogo.
+        *
      * @return array<int,array<string,mixed>>
      */
     public function listAllParts(): array
@@ -41,7 +48,8 @@ final class SupplierRepository
     }
 
     /**
-     * Crea un nuovo pezzo
+        * Crea un nuovo pezzo nell'anagrafica pezzi.
+        *
      * @return array<string,mixed>
      */
     public function createPart(string $name, string $color): array
@@ -56,7 +64,12 @@ final class SupplierRepository
     }
 
     /**
-     * Aggiunge un pezzo al catalogo del fornitore
+        * Aggiunge un pezzo al catalogo del fornitore.
+        *
+        * Controlli applicati:
+        * - il pezzo deve esistere;
+        * - la coppia (`fid`,`pid`) non deve essere gia presente.
+        *
      * @return array<string,mixed>
      */
     public function addToCatalog(int $fid, int $pid, float $costo): array
@@ -91,7 +104,10 @@ final class SupplierRepository
     }
 
     /**
-     * Aggiorna il costo di un pezzo nel catalogo
+        * Aggiorna il costo di un elemento catalogo del fornitore.
+        *
+        * L'update deve toccare almeno una riga, altrimenti l'elemento non esiste.
+        *
      * @return array<string,mixed>
      */
     public function updateCatalogItem(int $fid, int $pid, float $costo): array
@@ -120,7 +136,8 @@ final class SupplierRepository
     }
 
     /**
-     * Rimuove un pezzo dal catalogo del fornitore
+        * Rimuove un pezzo dal catalogo del fornitore.
+        * Ritorna `true` se la riga e stata effettivamente eliminata.
      */
     public function removeFromCatalog(int $fid, int $pid): bool
     {
@@ -136,7 +153,8 @@ final class SupplierRepository
     // ==================== Helper Methods ====================
 
     /**
-     * Ottiene un pezzo per ID
+        * Recupera un pezzo per ID.
+        *
      * @return array<string,mixed>|null
      */
     private function getPartById(int $pid): ?array
@@ -149,7 +167,8 @@ final class SupplierRepository
     }
 
     /**
-     * Ottiene un elemento del catalogo con dettagli del pezzo
+        * Recupera un elemento catalogo con dettagli del pezzo.
+        *
      * @return array<string,mixed>|null
      */
     private function getCatalogItem(int $fid, int $pid): ?array

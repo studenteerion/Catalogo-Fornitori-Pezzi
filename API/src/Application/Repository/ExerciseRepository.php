@@ -299,11 +299,18 @@ final class ExerciseRepository
         10 => ['id' => 'part'],
     ];
 
+    /**
+     * Inietta la connessione PDO usata per eseguire query predefinite e lookup.
+     */
     public function __construct(private PDO $pdo)
     {
     }
 
-    /** @return array<int, array{id:int,description:string}> */
+    /**
+     * Restituisce il catalogo delle query disponibili con id e descrizione.
+     *
+     * @return array<int, array{id:int,description:string}>
+     */
     public function listQueries(): array
     {
         $items = [];
@@ -318,6 +325,9 @@ final class ExerciseRepository
         return $items;
     }
 
+    /**
+     * Recupera il dettaglio di un fornitore per id.
+     */
     public function getSupplierDetailsById(int $fid): ?array
     {
         $statement = $this->pdo->prepare(
@@ -332,6 +342,9 @@ final class ExerciseRepository
         return $row === false ? null : $row;
     }
 
+    /**
+     * Recupera il dettaglio di un pezzo per id.
+     */
     public function getPartDetailsById(int $pid): ?array
     {
         $statement = $this->pdo->prepare(
@@ -346,7 +359,20 @@ final class ExerciseRepository
         return $row === false ? null : $row;
     }
 
-    /** @return array{description:string,query:string,rows:array<int,array<string,mixed>>,pagination:array<string,int>} */
+    /**
+     * Esegue una query predefinita con supporto opzionale a ordinamento e paginazione.
+     *
+     * Sicurezza:
+     * - l'id query e vincolato all'array statico `QUERIES`;
+     * - `orderBy` e validato con whitelist per query.
+     *
+     * Output:
+     * - SQL finale eseguita;
+     * - righe arricchite con dettagli entita quando possibile;
+     * - metadati di paginazione.
+     *
+     * @return array{description:string,query:string,rows:array<int,array<string,mixed>>,pagination:array<string,int>}
+     */
     public function runQuery(
         int $id,
         ?int $page = null,
@@ -362,12 +388,14 @@ final class ExerciseRepository
             throw new InvalidArgumentException('Query non valida. Usa un id da 1 a 10.');
         }
 
+        // La paginazione si attiva solo quando sono presenti sia page sia pageSize.
         $usePagination = $page !== null && $pageSize !== null;
 
         $safePage = $usePagination ? max(1, $page) : 1;
         $safePageSize = $usePagination ? max(1, $pageSize) : 0;
         $offset = $usePagination ? (($safePage - 1) * $safePageSize) : 0;
 
+        // L'ordinamento e' protetto da whitelist per query, evitando injection sui nomi colonna.
         $allowedColumns = self::ORDERABLE_COLUMNS[$id] ?? [];
         $safeOrderDir = strtoupper((string) $orderDir) === 'DESC' ? 'DESC' : 'ASC';
         $safeOrderBy = null;
@@ -385,6 +413,7 @@ final class ExerciseRepository
             }
         }
 
+        // Calcola prima il totale per restituire metadati di paginazione coerenti.
         $countQuery = sprintf('SELECT COUNT(*) AS total FROM (%s) q', $query);
         $countStatement = $this->pdo->query($countQuery);
         $total = (int) ($countStatement->fetchColumn() ?: 0);
@@ -423,12 +452,19 @@ final class ExerciseRepository
         ];
     }
 
-    /** @param array<int,array<string,mixed>> $rows
-     *  @return array<int,array<string,mixed>>
+    /**
+     * Arricchisce il risultato raw con dettagli fornitore/pezzo.
+     *
+     * Usa indizi (`QUERY_ENTITY_HINTS`) per capire come interpretare colonne
+     * come `id` o campi nome, aggiungendo `_details` quando trova match utili.
+     *
+     * @param array<int,array<string,mixed>> $rows
+     * @return array<int,array<string,mixed>>
      */
     private function enrichRows(int $queryId, array $rows): array
     {
         $hints = self::QUERY_ENTITY_HINTS[$queryId] ?? [];
+        // Cache locali per evitare lookup ripetuti sugli stessi id/nomi nella stessa risposta.
         $supplierByIdCache = [];
         $partByIdCache = [];
         $suppliersByNameCache = [];
@@ -537,8 +573,11 @@ final class ExerciseRepository
         return $rows;
     }
 
-    /** @param array<int,array<string,mixed>|null> $cache
-     *  @return array<string,mixed>|null
+    /**
+     * Recupera un fornitore per id con cache in-memory per la singola esecuzione.
+     *
+     * @param array<int,array<string,mixed>|null> $cache
+     * @return array<string,mixed>|null
      */
     private function getSupplierById(int $fid, array &$cache): ?array
     {
@@ -554,8 +593,11 @@ final class ExerciseRepository
         return $cache[$fid];
     }
 
-    /** @param array<int,array<string,mixed>|null> $cache
-     *  @return array<string,mixed>|null
+    /**
+     * Recupera un pezzo per id con cache in-memory per ridurre query duplicate.
+     *
+     * @param array<int,array<string,mixed>|null> $cache
+     * @return array<string,mixed>|null
      */
     private function getPartById(int $pid, array &$cache): ?array
     {
@@ -571,8 +613,11 @@ final class ExerciseRepository
         return $cache[$pid];
     }
 
-    /** @param array<string,array<int,array<string,mixed>>> $cache
-     *  @return array<int,array<string,mixed>>
+    /**
+     * Cerca fornitori per nome (case-insensitive) con cache locale per nome.
+     *
+     * @param array<string,array<int,array<string,mixed>>> $cache
+     * @return array<int,array<string,mixed>>
      */
     private function findSuppliersByName(string $name, array &$cache): array
     {
@@ -592,8 +637,11 @@ final class ExerciseRepository
         return $cache[$cacheKey];
     }
 
-    /** @param array<string,array<int,array<string,mixed>>> $cache
-     *  @return array<int,array<string,mixed>>
+    /**
+     * Cerca pezzi per nome (case-insensitive) con cache locale per nome.
+     *
+     * @param array<string,array<int,array<string,mixed>>> $cache
+     * @return array<int,array<string,mixed>>
      */
     private function findPartsByName(string $name, array &$cache): array
     {
@@ -613,8 +661,11 @@ final class ExerciseRepository
         return $cache[$cacheKey];
     }
 
-    /** @param array<string,mixed> $row
-     *  @return array<string,mixed>
+    /**
+     * Mappa una riga SQL fornitore in una struttura coerente (`id`, `nome`, `indirizzo`).
+     *
+     * @param array<string,mixed> $row
+     * @return array<string,mixed>
      */
     private function mapSupplierRow(array $row): array
     {
@@ -625,8 +676,11 @@ final class ExerciseRepository
         ];
     }
 
-    /** @param array<string,mixed> $row
-     *  @return array<string,mixed>
+    /**
+     * Mappa una riga SQL pezzo in una struttura coerente (`id`, `nome`, `colore`).
+     *
+     * @param array<string,mixed> $row
+     * @return array<string,mixed>
      */
     private function mapPartRow(array $row): array
     {

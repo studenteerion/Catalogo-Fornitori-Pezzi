@@ -11,10 +11,16 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 
 final class AdminController
 {
+    /**
+     * Inietta il repository amministrativo con operazioni CRUD su dominio e account.
+     */
     public function __construct(private AdminRepository $repository)
     {
     }
 
+    /**
+     * Restituisce l'elenco completo dei fornitori.
+     */
     public function listSuppliers(Request $request, Response $response): Response
     {
         return $this->json($response, [
@@ -22,6 +28,10 @@ final class AdminController
         ]);
     }
 
+    /**
+     * Restituisce il dettaglio di un fornitore identificato da `fid`.
+     * Torna 404 se il record non esiste.
+     */
     public function getSupplier(Request $request, Response $response, array $args): Response
     {
         $fid = (int) ($args['fid'] ?? 0);
@@ -34,6 +44,10 @@ final class AdminController
         return $this->json($response, ['fornitore' => $supplier]);
     }
 
+    /**
+     * Crea un nuovo fornitore.
+     * Valida i campi obbligatori (`fnome`, `indirizzo`) prima di delegare al repository.
+     */
     public function createSupplier(Request $request, Response $response): Response
     {
         $payload = $this->payload($request);
@@ -53,11 +67,16 @@ final class AdminController
         ], 201);
     }
 
+    /**
+     * Aggiorna in modo parziale i dati di un fornitore.
+     * Il repository gestisce validazione dei campi aggiornabili e casi di errore dominio.
+     */
     public function updateSupplier(Request $request, Response $response, array $args): Response
     {
         $fid = (int) ($args['fid'] ?? 0);
 
         try {
+            // Aggiornamento parziale: il repository valida i campi ammessi e payload vuoti.
             $supplier = $this->repository->updateSupplier($fid, $this->payload($request));
 
             return $this->json($response, [
@@ -70,6 +89,10 @@ final class AdminController
         }
     }
 
+    /**
+     * Elimina un fornitore per id.
+     * Restituisce 404 se il fornitore non e presente.
+     */
     public function deleteSupplier(Request $request, Response $response, array $args): Response
     {
         $fid = (int) ($args['fid'] ?? 0);
@@ -86,6 +109,9 @@ final class AdminController
         ]);
     }
 
+    /**
+     * Restituisce la lista dei pezzi anagrafici.
+     */
     public function listParts(Request $request, Response $response): Response
     {
         return $this->json($response, [
@@ -93,6 +119,9 @@ final class AdminController
         ]);
     }
 
+    /**
+     * Crea un nuovo pezzo validando nome e colore.
+     */
     public function createPart(Request $request, Response $response): Response
     {
         $payload = $this->payload($request);
@@ -112,6 +141,9 @@ final class AdminController
         ], 201);
     }
 
+    /**
+     * Aggiorna in modo parziale un pezzo esistente (`pid`).
+     */
     public function updatePart(Request $request, Response $response, array $args): Response
     {
         $pid = (int) ($args['pid'] ?? 0);
@@ -129,6 +161,9 @@ final class AdminController
         }
     }
 
+    /**
+     * Elimina un pezzo e ritorna 404 se assente.
+     */
     public function deletePart(Request $request, Response $response, array $args): Response
     {
         $pid = (int) ($args['pid'] ?? 0);
@@ -145,6 +180,9 @@ final class AdminController
         ]);
     }
 
+    /**
+     * Restituisce la vista completa del catalogo (fornitore-pezzo-costo).
+     */
     public function listCatalog(Request $request, Response $response): Response
     {
         return $this->json($response, [
@@ -152,6 +190,10 @@ final class AdminController
         ]);
     }
 
+    /**
+     * Inserisce una nuova riga nel catalogo (`fid`, `pid`, `costo`).
+     * Richiede identificativi validi e costo numerico.
+     */
     public function createCatalogItem(Request $request, Response $response): Response
     {
         $payload = $this->payload($request);
@@ -173,6 +215,9 @@ final class AdminController
         ], 201);
     }
 
+    /**
+     * Aggiorna il costo di un elemento catalogo identificato da (`fid`, `pid`).
+     */
     public function updateCatalogItem(Request $request, Response $response, array $args): Response
     {
         $fid = (int) ($args['fid'] ?? 0);
@@ -193,6 +238,9 @@ final class AdminController
         }
     }
 
+    /**
+     * Elimina un elemento dal catalogo tramite chiave composta (`fid`, `pid`).
+     */
     public function deleteCatalogItem(Request $request, Response $response, array $args): Response
     {
         $fid = (int) ($args['fid'] ?? 0);
@@ -212,6 +260,9 @@ final class AdminController
 
     // ==================== Query ====================
 
+    /**
+     * Elenca le query salvate nella tabella `Query`.
+     */
     public function listQuery(Request $request, Response $response): Response
     {
         return $this->json($response, [
@@ -219,6 +270,9 @@ final class AdminController
         ]);
     }
 
+    /**
+     * Restituisce una singola query salvata (`qid`).
+     */
     public function getQuery(Request $request, Response $response, array $args): Response
     {
         $qid = (int) ($args['qid'] ?? 0);
@@ -231,6 +285,10 @@ final class AdminController
         return $this->json($response, ['query' => $query]);
     }
 
+    /**
+     * Crea una nuova query descrittiva.
+     * Richiede il campo `descrizione` non vuoto.
+     */
     public function createQuery(Request $request, Response $response): Response
     {
         $payload = $this->payload($request);
@@ -249,6 +307,9 @@ final class AdminController
         ], 201);
     }
 
+    /**
+     * Aggiorna la descrizione di una query esistente.
+     */
     public function updateQuery(Request $request, Response $response, array $args): Response
     {
         $qid = (int) ($args['qid'] ?? 0);
@@ -266,6 +327,9 @@ final class AdminController
         }
     }
 
+    /**
+     * Rimuove una query dalla base dati.
+     */
     public function deleteQuery(Request $request, Response $response, array $args): Response
     {
         $qid = (int) ($args['qid'] ?? 0);
@@ -284,6 +348,9 @@ final class AdminController
 
     // ==================== Accounts ====================
 
+    /**
+     * Elenca tutti gli account (admin e fornitore) con dati essenziali.
+     */
     public function listAccounts(Request $request, Response $response): Response
     {
         return $this->json($response, [
@@ -291,6 +358,10 @@ final class AdminController
         ]);
     }
 
+    /**
+     * Restituisce il dettaglio di un account fornitore.
+     * Se l'account e admin, il repository genera errore dominio.
+     */
     public function getSupplierAccount(Request $request, Response $response, array $args): Response
     {
         $aid = (int) ($args['aid'] ?? 0);
@@ -314,6 +385,10 @@ final class AdminController
         }
     }
 
+    /**
+     * Crea un account fornitore collegato a un `fid` esistente.
+     * Gestisce validazioni base e conflitti email (409).
+     */
     public function createSupplierAccount(Request $request, Response $response): Response
     {
         $payload = $this->payload($request);
@@ -348,11 +423,16 @@ final class AdminController
         }
     }
 
+    /**
+     * Aggiorna account fornitore (email/fid/password) in modo parziale.
+     * Applica una validazione preliminare dell'email a livello controller.
+     */
     public function updateSupplierAccount(Request $request, Response $response, array $args): Response
     {
         $aid = (int) ($args['aid'] ?? 0);
         $payload = $this->payload($request);
 
+        // Validazione email anticipata per restituire un 422 chiaro prima del repository.
         if (array_key_exists('email', $payload)) {
             $email = trim((string) $payload['email']);
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -378,6 +458,10 @@ final class AdminController
         }
     }
 
+    /**
+     * Elimina un account non-admin.
+     * La protezione contro la cancellazione admin e applicata nel repository.
+     */
     public function deleteAccount(Request $request, Response $response, array $args): Response
     {
         $aid = (int) ($args['aid'] ?? 0);
@@ -401,6 +485,9 @@ final class AdminController
         }
     }
 
+    /**
+     * Crea un nuovo account amministratore.
+     */
     public function createAdmin(Request $request, Response $response): Response
     {
         $payload = $this->payload($request);
@@ -436,7 +523,12 @@ final class AdminController
 
     // ==================== Helper Methods ====================
 
-    /** @return array<string,mixed> */
+    /**
+     * Converte il body JSON in array associativo.
+     * Ritorna array vuoto per body assente o non valido.
+     *
+     * @return array<string,mixed>
+     */
     private function payload(Request $request): array
     {
         $rawBody = (string) $request->getBody();
@@ -449,7 +541,11 @@ final class AdminController
         return is_array($data) ? $data : [];
     }
 
-    /** @param array<string,mixed> $data */
+    /**
+     * Serializza e restituisce una risposta JSON standard del controller.
+     *
+     * @param array<string,mixed> $data
+     */
     private function json(Response $response, array $data, int $statusCode = 200): Response
     {
         $payload = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);

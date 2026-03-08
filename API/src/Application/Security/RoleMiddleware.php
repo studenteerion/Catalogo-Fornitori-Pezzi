@@ -12,17 +12,27 @@ use Psr\Http\Server\RequestHandlerInterface;
 
 final class RoleMiddleware implements MiddlewareInterface
 {
+    /**
+     * Configura il ruolo richiesto per la sezione protetta.
+     */
     public function __construct(
         private string $requiredRole,
         private ResponseFactoryInterface $responseFactory
     ) {
     }
 
+    /**
+     * Esegue il controllo autorizzativo a livello ruolo.
+     *
+     * Presuppone che AuthMiddleware abbia gia popolato `authAccount`.
+     * Se il ruolo non coincide, ritorna 403 e blocca l'accesso alla route.
+     */
     public function process(Request $request, RequestHandlerInterface $handler): Response
     {
         $account = $request->getAttribute('authAccount');
         $role = strtoupper((string) ($account['ruolo'] ?? ''));
 
+        // Controllo ruolo case-insensitive, applicato prima di entrare negli handler protetti.
         if ($role !== strtoupper($this->requiredRole)) {
             return $this->jsonResponse([
                 'error' => 'Permessi insufficienti.',
@@ -32,7 +42,11 @@ final class RoleMiddleware implements MiddlewareInterface
         return $handler->handle($request);
     }
 
-    /** @param array<string,mixed> $data */
+    /**
+     * Genera risposta JSON standard per errori di autorizzazione.
+     *
+     * @param array<string,mixed> $data
+     */
     private function jsonResponse(array $data, int $status): Response
     {
         $response = $this->responseFactory->createResponse($status);
